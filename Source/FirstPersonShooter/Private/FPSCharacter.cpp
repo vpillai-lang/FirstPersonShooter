@@ -2,8 +2,10 @@
 
 
 #include "FPSCharacter.h"
-#include "GameFrameWORK/SpringArmComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
+#include "DrawDebugHelpers.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
 AFPSCharacter::AFPSCharacter()
@@ -12,10 +14,15 @@ AFPSCharacter::AFPSCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 	SpringArmComp = CreateDefaultSubobject<USpringArmComponent>("SpringArmComp");
+	SpringArmComp->bUsePawnControlRotation = true;
 	SpringArmComp->SetupAttachment(RootComponent);
 
 	CameraComp = CreateDefaultSubobject<UCameraComponent>("CameraComp");
 	CameraComp->SetupAttachment(SpringArmComp);
+
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+
+	bUseControllerRotationYaw = false;
 
 }
 
@@ -24,13 +31,6 @@ void AFPSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
-}
-
-void AFPSCharacter::MoveForward(float Value) 
-{
-
-	AddMovementInput(GetActorForwardVector(), Value);
-
 }
 
 // Called every frame
@@ -46,8 +46,54 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 
 	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+
+
+	PlayerInputComponent->BindAction("PrimaryAttack", IE_Pressed, this, &AFPSCharacter::PrimaryAttack);
+}
+
+void AFPSCharacter::MoveForward(float Value)
+{
+
+	FRotator ControlRot = GetControlRotation();
+	ControlRot.Pitch = 0.0f;
+	ControlRot.Roll = 0.0f;
+
+	AddMovementInput(ControlRot.Vector(), Value);
+
+}
+
+void AFPSCharacter::MoveRight(float Value)
+{
+
+	FRotator ControlRot = GetControlRotation();
+	ControlRot.Pitch = 0.0f;
+	ControlRot.Roll = 0.0f;
+
+	// X = Forward (Red)
+	// Y = Right (Green)
+	// X = Up (Blue)
+
+	FVector RightVector = FRotationMatrix(ControlRot).GetScaledAxis(EAxis::Y);
+
+	AddMovementInput(RightVector, Value);
+
+}
+
+void AFPSCharacter::PrimaryAttack()
+{
+
+	FVector HandLocation  = GetMesh()->GetSocketLocation("Muzzle_01");
+
+	FTransform SpawnTM = FTransform(GetControlRotation(), HandLocation);
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnTM, SpawnParams);
 
 }
 
