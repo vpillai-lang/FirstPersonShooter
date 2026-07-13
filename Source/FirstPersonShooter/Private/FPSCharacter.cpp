@@ -6,6 +6,7 @@
 #include "Camera/CameraComponent.h"
 #include "DrawDebugHelpers.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "FPSInteractionComponent.h"
 
 // Sets default values
 AFPSCharacter::AFPSCharacter()
@@ -19,6 +20,8 @@ AFPSCharacter::AFPSCharacter()
 
 	CameraComp = CreateDefaultSubobject<UCameraComponent>("CameraComp");
 	CameraComp->SetupAttachment(SpringArmComp);
+
+	InteractionComp = CreateDefaultSubobject<UFPSInteractionComponent>("InteractionComp");
 
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 
@@ -44,6 +47,8 @@ void AFPSCharacter::Tick(float DeltaTime)
 void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	
+	UE_LOG(LogTemp, Warning, TEXT("SetupPlayerInputComponent called"));
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
@@ -53,6 +58,9 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 
 
 	PlayerInputComponent->BindAction("PrimaryAttack", IE_Pressed, this, &AFPSCharacter::PrimaryAttack);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+	PlayerInputComponent->BindAction("PrimaryInteract", IE_Pressed, this, &AFPSCharacter::PrimaryInteract);
+	
 }
 
 void AFPSCharacter::MoveForward(float Value)
@@ -86,14 +94,38 @@ void AFPSCharacter::MoveRight(float Value)
 void AFPSCharacter::PrimaryAttack()
 {
 
-	FVector HandLocation  = GetMesh()->GetSocketLocation("Muzzle_01");
+	PlayAnimMontage(AttackAnim);
+
+	GetWorldTimerManager().SetTimer(TimerHandle_PrimaryAttack, this, &AFPSCharacter::PrimaryAttack_TimeElapsed, 0.2f);
+
+}
+
+void AFPSCharacter::StartJump()
+{
+	Jump();
+}
+
+void AFPSCharacter::PrimaryInteract()
+{
+	if(InteractionComp)
+	{
+
+		UE_LOG(LogTemp, Warning, TEXT("Character PrimaryInteract"));
+		InteractionComp->PrimaryInteract();
+	}
+}
+
+void AFPSCharacter::PrimaryAttack_TimeElapsed()
+{
+	
+	FVector HandLocation = GetMesh()->GetSocketLocation("Muzzle_01");
 
 	FTransform SpawnTM = FTransform(GetControlRotation(), HandLocation);
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	SpawnParams.Instigator = this;
 
 	GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnTM, SpawnParams);
 
 }
-

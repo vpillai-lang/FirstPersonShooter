@@ -4,32 +4,32 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "FPSMagicProjectile.generated.h"
-
-class USphereComponent;
-class UProjectileMovementComponent;
-class UNiagaraComponent;
+#include "FPSGameplayInterface.h"
+#include "FPSItemChest.generated.h"
 
 UCLASS()
-class FIRSTPERSONSHOOTER_API AFPSMagicProjectile : public AActor
+class FIRSTPERSONSHOOTER_API AFPSItemChest : public AActor, public IFPSGameplayInterface
 {
 	GENERATED_BODY()
+
+public:
+
+	UPROPERTY(EditAnywhere)
+	float TargetPitch;
+
+	void Interact_Implementation(APawn* InstigatorPawn);
 	
 public:	
 	// Sets default values for this actor's properties
-	AFPSMagicProjectile();
+	AFPSItemChest();
 
 protected:
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	USphereComponent* SphereComp;
+	UPROPERTY(VisibleAnywhere)
+	UStaticMeshComponent* BaseMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	UProjectileMovementComponent* MovementComp;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	UNiagaraComponent* NiagaraComp;
-
+	UStaticMeshComponent* LidMesh;
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
